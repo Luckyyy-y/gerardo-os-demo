@@ -967,7 +967,7 @@ function FinanceView({ workspace, onOpenQuickAdd, onUpdate, banking }: { workspa
       <SectionHeading
         eyebrow="Finance OS"
         title="Your accounts, spending, and plans together."
-        copy="Connected bank activity and manual entries, with a clear view of where your money goes."
+        copy="Explore fictional expenses, income, and savings. Manual entries stay in this browser."
         action={<Button onClick={() => onOpenQuickAdd("money")}><Plus /> Add transaction</Button>}
       />
 
@@ -1013,10 +1013,10 @@ function FinanceView({ workspace, onOpenQuickAdd, onUpdate, banking }: { workspa
         <Panel className="xl:col-span-7" title="Subscriptions" icon={RefreshCw}>
           <SubscriptionTracker workspace={workspace} onUpdate={onUpdate} />
         </Panel>
-        <Panel className="xl:col-span-5" title="Secure account connections" icon={Link2}>
+        <Panel className="xl:col-span-5" title="About this demo" icon={Link2}>
           <div className="space-y-3">
 
-            <div className="subtle-row"><div className="min-w-0 flex-1"><p className="text-sm font-medium">Credit Karma</p><p className="mt-1 text-xs leading-5 text-muted-foreground">No supported personal-data API is available for this app. Keep Credit Karma as a launcher and use bank sync for transactions.</p></div><Button size="sm" variant="outline" asChild><a href="https://www.creditkarma.com/" target="_blank" rel="noreferrer">Open</a></Button></div>
+            <p className="text-sm text-muted-foreground">The numbers here are sample data. Bank connections are disabled. Use Reset demo to restore the starting entries.</p>
           </div>
         </Panel>
       </div>

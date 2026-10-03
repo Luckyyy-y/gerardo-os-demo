@@ -1,6 +1,6 @@
 # Verification record
 
-Checked on October 3, 2026 using Node.js 24.19.0 in an isolated working copy. The existing installed dependency set was reused for these checks; a fresh `npm ci` installation has not been independently verified here.
+Checked on October 3, 2026 using Node.js 24.19.0 in an isolated working copy. The existing installed dependency set was reused for these checks; a fresh `npm ci` installation has not been independently verified here. Screenshots were captured from the running desktop sample-data demo.
 
 | Check | Result | Scope |
 | --- | --- | --- |
@@ -8,7 +8,8 @@ Checked on October 3, 2026 using Node.js 24.19.0 in an isolated working copy. Th
 | `npm run test:integrations` | 22 passed, 0 failed | Planner, parser, storage, route checks, and mocked provider behavior |
 | `npm run build` | Passed | Static client production bundle |
 | Public demo bundle review | Passed | Live clients and private production routing identifiers excluded |
-| Browser walkthrough | Pending | Task flows, persistence, reset, mobile, keyboard navigation |
+| Desktop browser checks | Passed for checked flows | Page navigation, task completion, undo, transaction search |
+| Other browser checks | Pending | Mobile, full keyboard navigation, timer, reset, storage-denied recovery |
 | Offline reload and PWA install | Pending | Browser/device dependent behavior |
 | Live Canvas/Plaid/Spotify/D1 | Not exercised | Disabled in public demo |
 

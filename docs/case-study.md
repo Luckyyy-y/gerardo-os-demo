@@ -50,4 +50,4 @@ The public app uses its own local key and cache namespace. Reset removes that de
 
 The static client builds, TypeScript checks pass, and 22 offline regression tests pass. These are measurable repository checks. There are no claims here about time saved, user adoption, uptime, real transaction accuracy, or live provider reliability.
 
-The next evidence should be a short recorded walkthrough showing task completion/undo, Next Move suggestions, a focus session, local persistence, and reset. Screenshots should use only the fictional demo workspace and include its sample-data banner.
+The README now includes desktop screenshots of Today, Next Move, and sample finances. Task completion, undo, and transaction search were checked in the browser. A short video showing these workflows is still planned. Timer, reset, mobile, and offline checks need further testing.
