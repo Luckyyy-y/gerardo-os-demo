@@ -7,7 +7,7 @@ type Props = {
 
 export function CanvasConnection(_props: Props) {
   return (
-    <section className="rounded-2xl border border-white/10 p-5">
+    <section className="border-y border-rule bg-card p-5">
       <h3 className="font-semibold">Sample coursework</h3>
       <p className="mt-2 text-sm text-muted-foreground">
         These courses and deadlines are fictional examples. Add and edit

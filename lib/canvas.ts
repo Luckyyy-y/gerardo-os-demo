@@ -9,7 +9,7 @@ export type CanvasImport = {
   warnings: string[];
   syncedAt: string;
 };
-export const courseColors = ["#7c8cff", "#22d3ee", "#f59e0b", "#fb7185", "#34d399", "#a78bfa"];
+export const courseColors = ["#2f6bd8", "#3a9d5d", "#d99a1e", "#c9c6bf", "#8f5bd6", "#d6336c"];
 export function calendarDay(iso: string, timeZone = "America/Chicago") {
   const date = new Date(iso);
   if (!Number.isFinite(date.getTime())) return "";

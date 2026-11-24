@@ -231,7 +231,7 @@ export function createStarterState(): WorkspaceState {
         code: "DEMO 101",
         title: "Secure Application Design",
         instructor: "Sample instructor",
-        color: "#7c8cff",
+        color: "#2f6bd8",
         progress: 68,
       },
       {
@@ -239,7 +239,7 @@ export function createStarterState(): WorkspaceState {
         code: "CLOUD",
         title: "Cloud Systems",
         instructor: "Sample instructor",
-        color: "#22d3ee",
+        color: "#3a9d5d",
         progress: 42,
       },
       {
@@ -247,7 +247,7 @@ export function createStarterState(): WorkspaceState {
         code: "CYBER",
         title: "Cybersecurity Lab",
         instructor: "Sample instructor",
-        color: "#f59e0b",
+        color: "#d99a1e",
         progress: 31,
       },
     ],

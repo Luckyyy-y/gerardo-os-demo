@@ -17,6 +17,8 @@ import {
   Brain,
   CalendarDays,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   CircleDollarSign,
   FolderGit2,
   GripVertical,
@@ -39,7 +41,8 @@ import {
   RefreshCw,
   RotateCcw,
   Settings2,
-  Sparkles,
+  ListOrdered,
+  Download,
   Target,
   TimerReset,
   Trash2,
@@ -106,6 +109,7 @@ import { NextMovePlanner } from "@/components/next-move-planner";
 import {
   TASK_UNDO_WINDOW_MS,
   completeTask,
+  rankTasks,
   isTaskCompletionUndoable,
   recentlyCompletedTasks,
   undoTaskCompletion,
@@ -137,7 +141,7 @@ const navigation: Array<{
   icon: typeof LayoutDashboard;
 }> = [
   { value: "today", label: "Today", icon: LayoutDashboard },
-  { value: "planner", label: "Next Move", icon: Sparkles },
+  { value: "planner", label: "Next Move", icon: ListOrdered },
   { value: "academics", label: "Academics", icon: GraduationCap },
   { value: "finance", label: "Finances", icon: WalletCards },
   { value: "brain", label: "Second brain", icon: Brain },
@@ -148,19 +152,21 @@ const navigation: Array<{
 const viewTitles: Record<ViewName, string> = {
   today: "Today",
   planner: "Next Move",
-  academics: "Academic command center",
-  finance: "Money overview",
+  academics: "Academics",
+  finance: "Finances",
   brain: "Second brain",
-  health: "Integration health",
-  settings: "Customize your OS",
+  health: "System health",
+  settings: "Customize",
 };
 
+// Stored accent keys are kept for existing browsers; they now name signal colors.
 const accentHex: Record<Accent, string> = {
-  indigo: "#7c8cff",
-  cyan: "#22d3ee",
-  amber: "#f59e0b",
-  rose: "#fb7185",
+  indigo: "#e1251b",
+  cyan: "#1f7fd1",
+  amber: "#d98a0b",
+  rose: "#d6336c",
 };
+const accentLabel: Record<Accent, string> = { indigo: "Red", cyan: "Blue", amber: "Ochre", rose: "Magenta" };
 
 function formatDate(value: string, short = false) {
   if (!value) return "No due date";
@@ -188,12 +194,6 @@ function daysUntil(value: string) {
   return Math.max(0, Math.ceil((target - today.getTime()) / 86_400_000));
 }
 
-function greeting() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
-}
 
 export function DashboardApp({ userName }: { userName: string }) {
   const [view, setView] = useState<ViewName>("today");
@@ -397,23 +397,21 @@ export function DashboardApp({ userName }: { userName: string }) {
           spotifyUrl={workspace.settings.spotifyUrl}
         />
         <SidebarInset className="min-w-0 bg-transparent">
-          <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-white/8 bg-background/82 px-4 backdrop-blur-xl sm:px-6">
+          <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-rule bg-background px-4 sm:px-6">
             <SidebarTrigger className="md:hidden" />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                {workspace.settings.appName}
-              </p>
-              <h1 className="truncate text-base font-semibold sm:text-lg">{viewTitles[view]}</h1>
-            </div>
+            <h1 className="min-w-0 flex-1 truncate text-[15px] font-extrabold">
+              {viewTitles[view]}
+              <span className="font-normal text-muted-foreground"> · {new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</span>
+            </h1>
             <SyncBadge status={syncStatus} onRetry={() => void saveWorkspace(workspaceRef.current)} />
-            <Button onClick={() => openQuickAdd()} className="shadow-[0_0_26px_color-mix(in_srgb,var(--primary)_22%,transparent)]">
+            <Button onClick={() => openQuickAdd()}>
               <Plus />
               <span className="hidden sm:inline">Quick add</span>
             </Button>
           </header>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-primary/20 bg-primary/5 px-4 py-3 sm:px-6" role="note">
-            <p className="text-sm text-muted-foreground"><strong className="text-foreground">Portfolio demo</strong> · Fictional sample data · Saved in this browser only</p>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule bg-card px-4 py-2 sm:px-6" role="note">
+            <p className="text-muted-foreground"><strong className="font-extrabold text-foreground">Portfolio demo</strong> · Fictional sample data · Saved in this browser only</p>
             <Button size="sm" variant="outline" onClick={resetDemo}><RotateCcw /> Reset demo</Button>
           </div>
           <main className="mx-auto w-full max-w-[1540px] flex-1 p-4 sm:p-6 lg:p-8">
@@ -431,6 +429,7 @@ export function DashboardApp({ userName }: { userName: string }) {
                 onNavigate={changeView}
                 onUpdate={updateWorkspace}
                 focusLaunch={focusLaunch}
+                onStartFocus={startFocusForTask}
               />
             ) : view === "planner" ? (
               <NextMovePlanner
@@ -515,22 +514,13 @@ function AppSidebar({
   };
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0">
-      <SidebarHeader className="p-3">
-        <div className="flex h-12 items-center gap-3 rounded-xl border border-white/8 bg-white/[0.035] px-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-          <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-sm font-black text-primary-foreground shadow-[0_0_24px_color-mix(in_srgb,var(--primary)_28%,transparent)]">
-            G
-          </div>
-          <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-            <p className="truncate text-sm font-semibold">{appName}</p>
-            <p className="text-xs text-muted-foreground">Portfolio demo</p>
-          </div>
-        </div>
+    <Sidebar collapsible="icon" className="border-r border-rule">
+      <SidebarHeader className="h-14 justify-center border-b border-rule px-4 group-data-[collapsible=icon]:px-2">
+        <p className="truncate text-[15px] font-black uppercase tracking-[0.04em] group-data-[collapsible=icon]:hidden">{appName}</p>
+        <p className="hidden text-center text-[15px] font-black group-data-[collapsible=icon]:block" aria-hidden>G</p>
       </SidebarHeader>
-      <SidebarSeparator />
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Command center</SidebarGroupLabel>
+        <SidebarGroup className="pt-4">
           <SidebarGroupContent>
             <SidebarMenu>
               {navigation.map((item) => (
@@ -568,9 +558,9 @@ function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-3">
-        <div className="flex items-center gap-2 rounded-lg border border-white/8 px-3 py-2 text-xs text-muted-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-          {syncStatus === "offline" ? <CloudOff className="size-4 text-amber-400" /> : syncStatus === "local" ? <HardDrive className="size-4 text-cyan-300" /> : <Cloud className="size-4 text-emerald-400" />}
+      <SidebarFooter className="border-t border-rule p-0">
+        <div className="flex items-center gap-2 px-4 py-3 text-[13px] text-muted-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          {syncStatus === "offline" ? <CloudOff className="size-4 text-[color:var(--warn)]" /> : syncStatus === "local" ? <HardDrive className="size-4 text-[color:var(--info)]" /> : <Cloud className="size-4 text-[color:var(--ok)]" />}
           <span className="group-data-[collapsible=icon]:hidden">
             {syncStatus === "offline" ? "Waiting to sync" : syncStatus === "local" ? "Saved on this device" : "PC + tablet sync"}
           </span>
@@ -587,10 +577,10 @@ function SyncBadge({ status, onRetry }: { status: SyncStatus; onRetry: () => voi
       : status === "saving"
         ? { icon: Cloud, label: "Saving", className: "" }
         : status === "offline"
-          ? { icon: CloudOff, label: "Storage unavailable", className: "text-amber-300" }
+          ? { icon: CloudOff, label: "Storage unavailable", className: "text-[color:var(--warn)]" }
           : status === "local"
-            ? { icon: HardDrive, label: "Saved on this device", className: "text-cyan-300" }
-          : { icon: CheckCircle2, label: "Synced", className: "text-emerald-300" };
+            ? { icon: HardDrive, label: "Saved on this device", className: "text-[color:var(--info)]" }
+          : { icon: CheckCircle2, label: "Synced", className: "text-[color:var(--ok)]" };
   const Icon = content.icon;
 
   return (
@@ -629,18 +619,18 @@ function RecentCompletions({ tasks, onUndo }: { tasks: Task[]; onUndo: (id: stri
   if (!recent.length) return null;
 
   return (
-    <section className="mb-5 rounded-2xl border border-emerald-400/20 bg-emerald-400/[0.055] p-4" aria-label="Recently completed tasks">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <section className="recovery-strip mb-4" aria-label="Recently completed tasks">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <CheckCircle2 className="size-4 text-emerald-300" />
-          <h2 className="text-sm font-semibold">Recently completed</h2>
-          <Badge variant="outline">12-hour undo</Badge>
+          <CheckCircle2 className="size-4" />
+          <h2 className="font-extrabold">Recently completed</h2>
+          <span className="label">12-hour undo</span>
         </div>
-        <p className="text-xs text-muted-foreground">Completed work is hidden, not deleted.</p>
+        <p className="text-[13px] text-muted-foreground">Completed work is hidden, not deleted.</p>
       </div>
       <div className="grid max-h-52 gap-2 overflow-y-auto sm:grid-cols-2 xl:grid-cols-3">
         {recent.map((task) => (
-          <div key={task.id} className="flex min-w-0 items-center gap-3 rounded-xl border border-white/8 bg-background/45 px-3 py-2.5">
+          <div key={task.id} className="flex min-w-0 items-center gap-3 border-t border-rule py-2">
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{task.title}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">{undoTimeLeft(task, now)}</p>
@@ -659,11 +649,9 @@ function LoadingWorkspace() {
   return (
     <div className="grid min-h-[70vh] place-items-center">
       <div className="text-center">
-        <div className="mx-auto mb-5 grid size-12 place-items-center rounded-2xl border border-primary/25 bg-primary/10">
-          <Loader2 className="size-5 animate-spin text-primary" />
-        </div>
-        <p className="text-base font-medium">Opening your workspace</p>
-        <p className="mt-1 text-sm text-muted-foreground">Bringing your latest changes onto this screen.</p>
+        <Loader2 className="mx-auto mb-4 size-6 animate-spin" />
+        <p className="font-extrabold">Opening the demo workspace</p>
+        <p className="mt-1 text-muted-foreground">Loading sample data from this browser.</p>
       </div>
     </div>
   );
@@ -679,6 +667,7 @@ function TodayView({
   onNavigate,
   onUpdate,
   focusLaunch,
+  onStartFocus,
 }: {
   userName: string;
   workspace: WorkspaceState;
@@ -689,87 +678,58 @@ function TodayView({
   onNavigate: (view: ViewName) => void;
   onUpdate: (change: (current: WorkspaceState) => WorkspaceState) => void;
   focusLaunch: FocusLaunch | null;
+  onStartFocus: (task: Task, minutes: number) => void;
 }) {
   const openTasks = workspace.tasks.filter((task) => task.status !== "done");
-  const doneTasks = workspace.tasks.filter((task) => task.status === "done").length;
-  const completion = workspace.tasks.length ? Math.round((doneTasks / workspace.tasks.length) * 100) : 0;
-  const nextTasks = [...openTasks].sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999")).slice(0, 6);
+  const today = addDaysIso(0);
+  const dueToday = openTasks.filter((task) => task.due === today).length;
+  const overdue = openTasks.filter((task) => task.due && task.due < today).length;
+  const nextTasks = [...openTasks].sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999")).slice(0, 7);
 
   return (
-    <div className="space-y-5">
-      <section className="command-ribbon overflow-hidden rounded-[1.4rem] border border-white/10 p-5 sm:p-7">
-        <div className="relative z-10 grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
-          <div>
-            <p className="mb-2 text-sm font-medium text-primary">{greeting()}, {userName}.</p>
-            <h2 className="max-w-3xl text-2xl font-semibold tracking-[-0.035em] sm:text-4xl">
-              One place for the work that moves your life forward.
-            </h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/55 sm:text-base">
-              {openTasks.length} open tasks · {daysUntil(workspace.settings.graduationDate).toLocaleString()} days to graduation
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden min-w-40 sm:block">
-              <div className="mb-2 flex justify-between text-xs text-white/55">
-                <span>Weekly momentum</span>
-                <span>{completion}%</span>
-              </div>
-              <Progress value={completion} />
-            </div>
-            <Button variant="secondary" onClick={() => onOpenQuickAdd("task")}>
-              <Plus /> Add a task
-            </Button>
-          </div>
-        </div>
-      </section>
+    <div className="-mx-4 -mt-4 sm:-mx-6 sm:-mt-6 lg:-mx-8 lg:-mt-8">
+      <div className="summary-strip">
+        <p><b>{openTasks.length}</b> open · <b>{dueToday}</b> due today · <b className={overdue ? "is-signal" : undefined}>{overdue} overdue</b> · <b>{daysUntil(workspace.settings.graduationDate).toLocaleString()}</b> days to graduation</p>
+        <Button variant="ghost" size="sm" onClick={() => onOpenQuickAdd("task")}><Plus /> Add dated task</Button>
+      </div>
 
-      <div className="grid gap-5 xl:grid-cols-12">
-        <Panel className="xl:col-span-7" title="What needs attention" icon={ListTodo} action={
-          <Button variant="ghost" size="sm" onClick={() => onNavigate("academics")}>All work <ArrowUpRight /></Button>
-        }>
+      <WeekCalendar
+        tasks={workspace.tasks}
+        courses={workspace.courses}
+        onMove={(id, due) => onUpdate((current) => ({
+          ...current,
+          tasks: current.tasks.map((task) => task.id === id ? { ...task, due } : task),
+        }))}
+      />
+
+      <div className="today-grid">
+        <section className="attention" aria-labelledby="attention-heading">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <h2 id="attention-heading" className="label !text-foreground">Needs attention</h2>
+            <Button variant="ghost" size="sm" onClick={() => onNavigate("academics")}>All work <ArrowUpRight /></Button>
+          </div>
           <TaskList
             tasks={nextTasks}
             courses={workspace.courses}
             onToggle={onToggleTask}
             onStatus={onTaskStatus}
-            emptyText="Nothing urgent. Add the next move when it appears."
+            emptyText="Nothing is due. Add the next thing when it shows up."
           />
-        </Panel>
-        <div className="grid gap-5 sm:grid-cols-2 xl:col-span-5 xl:grid-cols-1">
-          <ElegantClock />
+        </section>
+        <div className="side">
+          <TodayNextMove workspace={workspace} onStartFocus={onStartFocus} onOpenPlanner={() => onNavigate("planner")} />
           <FocusWidget presets={workspace.settings.focusPresets} launch={focusLaunch} />
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-12">
-        <Panel className="xl:col-span-12" title="Seven-day runway" icon={CalendarDays}>
-          <WeekStrip tasks={workspace.tasks} />
-        </Panel>
-
-      </div>
-
-      <SpotifyCard workspace={workspace} onUpdate={onUpdate} />
-
-      <Panel title="Interactive calendar" icon={CalendarDays} action={
-        <Button variant="outline" size="sm" onClick={() => onOpenQuickAdd("task")}><Plus /> Add dated task</Button>
-      }>
-        <InteractiveCalendar
-          tasks={workspace.tasks}
-          courses={workspace.courses}
-          onMove={(id, due) => onUpdate((current) => ({
-            ...current,
-            tasks: current.tasks.map((task) => task.id === id ? { ...task, due } : task),
-          }))}
-        />
-      </Panel>
-
-      <div className="grid gap-5 lg:grid-cols-2">
-        <Panel title="Sample projects" icon={FolderGit2} action={
+      <div className="today-lower">
+        <div className="border-b border-rule px-6 py-5 max-md:px-4"><SpotifyCard workspace={workspace} onUpdate={onUpdate} /></div>
+        <Panel className="half-left" title="Sample projects" action={
           <Button variant="ghost" size="sm" asChild><a href={`https://github.com/Luckyyy-y/gerardo-os-demo`} target="_blank" rel="noreferrer">Open GitHub <ArrowUpRight /></a></Button>
         }>
           <GithubProjects />
         </Panel>
-        <Panel title="Habits today" icon={Sparkles}>
+        <Panel className="half-right" title="Habits today">
           <EditableHabits workspace={workspace} onToggle={onToggleHabit} onUpdate={onUpdate} />
         </Panel>
       </div>
@@ -801,13 +761,12 @@ function AcademicsView({
   return (
     <div className="space-y-5">
       <SectionHeading
-        eyebrow="Academic OS"
-        title="Courses, deadlines, and deep work without the tab chaos."
+        title="Academics"
         copy="Your enrolled classes, assignments, and course materials together."
-        action={<div className="flex flex-wrap gap-2"><CanvasConnection workspace={workspace} onUpdate={onUpdate} /><Button onClick={() => onOpenQuickAdd("course")}><Plus /> Add course</Button></div>}
+        action={<div className="flex flex-wrap gap-2"><CanvasConnection workspace={workspace} onUpdate={onUpdate} /><Button variant="outline" onClick={() => onOpenQuickAdd("course")}><Plus /> Add course</Button></div>}
       />
 
-      <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+      <div className="grid gap-x-8 md:grid-cols-2 2xl:grid-cols-3">
         {workspace.courses.map((course) => {
           const outstanding = academicTasks.filter((task) => task.courseId === course.id && task.status !== "done").length;
           return (
@@ -815,16 +774,15 @@ function AcademicsView({
               <div className="course-accent" />
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--course-color)]">{course.code}</p>
-                  <h3 className="mt-2 text-lg font-semibold">{course.title}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{course.instructor}</p>{course.source === "canvas" && <div className="mt-2 flex gap-2 items-center"><Badge variant="outline">Canvas</Badge>{course.score != null && <span className="text-sm">Grade: {course.score}% {course.grade}</span>}{course.url && <a href={course.url} target="_blank" rel="noreferrer" className="text-sm text-primary">Open class ↗</a>}</div>}
+                  <h3 className="font-extrabold">{course.title}</h3>
+                  <p className="text-muted-foreground"><span className="font-semibold text-foreground">{course.code}</span> · {course.instructor}</p>{course.source === "canvas" && <div className="mt-2 flex gap-2 items-center"><Badge variant="outline">Canvas</Badge>{course.score != null && <span className="text-sm">Grade: {course.score}% {course.grade}</span>}{course.url && <a href={course.url} target="_blank" rel="noreferrer" className="text-sm text-foreground">Open class ↗</a>}</div>}
                 </div>
                 <Button variant="ghost" size="icon-sm" aria-label={`Remove ${course.title}`} onClick={() => onRemoveCourse(course.id)}>
                   <Trash2 />
                 </Button>
               </div>
-              <div className="mt-7">
-                <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+              <div className="mt-4">
+                <div className="mb-2 flex items-center justify-between text-[13px] text-muted-foreground">
                   <span>{outstanding} open assignment{outstanding === 1 ? "" : "s"}</span>
                   <span>{course.progress}% complete</span>
                 </div>
@@ -883,8 +841,8 @@ function AcademicsView({
 
       <CanvasMaterials workspace={workspace} />
       <div className="grid gap-5 xl:grid-cols-12">
-        <Panel className="xl:col-span-7" title="Lecture & deadline runway" icon={CalendarDays}>
-          <WeekStrip tasks={academicTasks} />
+        <Panel className="xl:col-span-7" title="Lecture & deadline runway">
+          <div className="-m-4 max-md:-m-[.85rem]"><WeekStrip tasks={academicTasks} /></div>
         </Panel>
         <NotesDock className="xl:col-span-5" onOpenNotes={onOpenNotes} />
       </div>
@@ -902,32 +860,22 @@ function healthLabel(level: HealthLevel) {
   return "Checking";
 }
 
-function healthTone(level: HealthLevel) {
-  if (level === "healthy") return "border-emerald-300/20 bg-emerald-300/[0.06] text-emerald-200";
-  if (level === "attention") return "border-amber-300/25 bg-amber-300/[0.06] text-amber-200";
-  if (level === "ready") return "border-primary/25 bg-primary/[0.06] text-primary";
-  return "border-white/10 bg-white/[0.025] text-muted-foreground";
-}
-
-function HealthCard({ icon: Icon, name, level, description, action }: {
-  icon: typeof Cloud;
+function HealthCard({ name, level, description, action }: {
+  icon?: typeof Cloud;
   name: string;
   level: HealthLevel;
   description: string;
   action?: ReactNode;
 }) {
   return (
-    <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-5">
+    <article className="border-t border-rule py-5">
       <div className="flex items-start gap-4">
-        <div className="grid size-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.04]">
-          <Icon className="size-5 text-primary" />
-        </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-semibold">{name}</h2>
-            <span className={cn("rounded-full border px-2.5 py-1 text-xs font-medium", healthTone(level))}>{healthLabel(level)}</span>
+            <h2 className="font-extrabold">{name}</h2>
+            <span className="status-chip" data-level={level}>{healthLabel(level)}</span>
           </div>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+          <p className="mt-2 max-w-[70ch] text-muted-foreground">{description}</p>
           {action && <div className="mt-4 flex flex-wrap gap-2">{action}</div>}
         </div>
       </div>
@@ -939,8 +887,8 @@ function HealthView({ syncStatus, onNavigate }: {
   workspace: WorkspaceState; ready: boolean; syncStatus: SyncStatus; banking: ReturnType<typeof useBanking>;
   onNavigate: (view: ViewName) => void; onRetrySync: () => void;
 }) {
-  return <div className="space-y-5"><SectionHeading eyebrow="Demo boundaries" title="Know what this version connects to." copy="The public demo uses your browser only. It does not check the private app or its accounts." />
-    <div className="grid gap-4 lg:grid-cols-2">
+  return <div className="space-y-5"><SectionHeading title="System health" copy="The public demo uses your browser only. It does not check the private app or its accounts." />
+    <div className="grid gap-x-10 lg:grid-cols-2">
       <HealthCard icon={HardDrive} name="Browser storage" level={syncStatus === "offline" ? "attention" : "healthy"} description={syncStatus === "offline" ? "Storage is unavailable. Edits may be lost after reload." : "Sample edits are stored on this device. Reset demo restores the fictional starting workspace."} />
       <HealthCard icon={Cloud} name="Cloud workspace / D1" level="inactive" description="No cloud workspace endpoint is called. No sign-in or cross-device synchronization is available in this demo." />
       <HealthCard icon={GraduationCap} name="Canvas" level="inactive" description="No private calendar feed or API token is accepted. Coursework is sample data." action={<Button variant="outline" onClick={() => onNavigate("academics")}>Explore sample courses</Button>} />
@@ -965,14 +913,13 @@ function FinanceView({ workspace, onOpenQuickAdd, onUpdate, banking }: { workspa
   return (
     <div className="space-y-5">
       <SectionHeading
-        eyebrow="Finance OS"
-        title="Your accounts, spending, and plans together."
+        title="Finances"
         copy="Explore fictional expenses, income, and savings. Manual entries stay in this browser."
-        action={<Button onClick={() => onOpenQuickAdd("money")}><Plus /> Add transaction</Button>}
+        action={<Button variant="outline" onClick={() => onOpenQuickAdd("money")}><Plus /> Add transaction</Button>}
       />
 
       <BankConnections banking={banking} />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="ledger">
         <MetricCard label="Spent this month" value={formatMoney(expenses)} note={budget ? `${budgetProgress}% of ${formatMoney(budget)} budget` : "Set a budget in Customize"} icon={WalletCards} />
         <MetricCard label="Income this month" value={formatMoney(income)} note="Posted income; transfers excluded" icon={TrendingUp} tone="good" />
         <MetricCard label="Savings" value={formatMoney(savings)} note={workspace.settings.savingsGoal ? `${savingsProgress}% of your goal` : "Set a goal in Customize"} icon={Target} />
@@ -984,19 +931,19 @@ function FinanceView({ workspace, onOpenQuickAdd, onUpdate, banking }: { workspa
           <div className="space-y-7">
             <div>
               <div className="mb-3 flex items-end justify-between gap-4">
-                <div><p className="text-sm text-muted-foreground">Budget used</p><p className="mt-1 text-2xl font-semibold">{budget ? `${budgetProgress}%` : "Not set"}</p></div>
+                <div><p className="text-muted-foreground">Budget used</p><p className="mt-1 text-[1.6rem] font-extrabold">{budget ? `${budgetProgress}%` : "Not set"}</p></div>
                 <p className="text-sm text-muted-foreground">{formatMoney(Math.max(0, budget - expenses))} left</p>
               </div>
-              <Progress value={budgetProgress} className={cn("h-2.5", budgetProgress > 85 && "[&_[data-slot=progress-indicator]]:bg-amber-400")} />
+              <Progress value={budgetProgress} className={cn(budgetProgress > 85 && "[&_[data-slot=progress-indicator]]:bg-signal")} />
             </div>
             <div>
               <div className="mb-3 flex items-end justify-between gap-4">
-                <div><p className="text-sm text-muted-foreground">Savings goal</p><p className="mt-1 text-2xl font-semibold">{savingsProgress}%</p></div>
+                <div><p className="text-muted-foreground">Savings goal</p><p className="mt-1 text-[1.6rem] font-extrabold">{savingsProgress}%</p></div>
                 <p className="text-sm text-muted-foreground">{formatMoney(workspace.settings.savingsGoal)}</p>
               </div>
-              <Progress value={savingsProgress} className="h-2.5 [&_[data-slot=progress-indicator]]:bg-emerald-400" />
+              <Progress value={savingsProgress} />
             </div>
-            <div className="rounded-xl border border-white/8 bg-white/[0.025] p-4 text-sm leading-6 text-muted-foreground">
+            <div className="border-t border-rule pt-4 text-[13px] text-muted-foreground">
               Budget totals use posted USD transactions. Transfers and credit card payments are excluded; identified refunds reduce spending. Manual entries for the same bank activity can double-count.
             </div>
           </div>
@@ -1039,34 +986,34 @@ function BrainView({
 }) {
   return (
     <div className="space-y-5">
-      <SectionHeading eyebrow="Second Brain OS" title="A home for ideas you want to use." copy="Capture ideas and questions, organize them by area, turn the useful ones into tasks, and archive or delete them when you’re done." />
+      <SectionHeading title="Second brain" copy="Capture ideas and questions, organize them by area, turn the useful ones into tasks, and archive or delete them when you’re done." />
       <SecondBrainInbox workspace={workspace} onUpdate={onUpdate} />
 
       <div className="grid gap-5 xl:grid-cols-12">
         <Panel className="xl:col-span-7" title="Active projects" icon={Target} action={
           <Button variant="outline" size="sm" onClick={() => onOpenQuickAdd("project")}><Plus /> Project</Button>
         }>
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-x-8 md:grid-cols-2">
             {workspace.projects.map((project) => (
               <article key={project.id} className="project-card">
                 <div className="flex items-start justify-between gap-3">
-                  <div><Badge variant="outline" className="mb-3">{project.area}</Badge><h3 className="font-semibold">{project.title}</h3></div>
-                  <span className="text-sm font-medium text-primary">{project.progress}%</span>
+                  <div><h3 className="font-extrabold">{project.title}</h3><p className="capitalize text-muted-foreground">{project.area}</p></div>
+                  <span className="font-extrabold">{project.progress}%</span>
                 </div>
-                <p className="mt-3 text-sm text-muted-foreground">Next: {project.nextAction}</p>
+                <p className="mt-2 text-muted-foreground">Next: {project.nextAction}</p>
                 <Slider value={[project.progress]} max={100} step={5} className="mt-5" aria-label={`${project.title} progress`} onValueChange={(value) => onProjectProgress(project.id, value[0] ?? 0)} />
               </article>
             ))}
             {workspace.projects.length === 0 && <EmptyCard title="No active projects" copy="Give your next outcome a name and one concrete action." onClick={() => onOpenQuickAdd("project")} />}
           </div>
         </Panel>
-        <Panel className="xl:col-span-5" title="Habits today" icon={Sparkles}>
+        <Panel className="xl:col-span-5" title="Habits today">
           <div className="space-y-2">
             {workspace.habits.map((habit) => (
               <label key={habit.id} className="subtle-row cursor-pointer">
                 <Checkbox checked={habit.done} onCheckedChange={(value) => onToggleHabit(habit.id, value === true)} />
                 <span className={cn("flex-1 text-sm", habit.done && "text-muted-foreground line-through")}>{habit.title}</span>
-                {habit.done && <CheckCircle2 className="size-4 text-emerald-400" />}
+                {habit.done && <CheckCircle2 className="size-4" />}
               </label>
             ))}
           </div>
@@ -1078,8 +1025,8 @@ function BrainView({
           <div className="space-y-2">
             {workspace.resources.map((resource) => (
               <a key={resource.id} href={resource.url} target="_blank" rel="noreferrer" className="subtle-row group">
-                <div className="grid size-9 place-items-center rounded-lg border border-white/8 bg-white/[0.03]"><ExternalLink className="size-4 text-primary" /></div>
-                <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium group-hover:text-primary">{resource.title}</p><p className="text-xs text-muted-foreground">{resource.tag}</p></div>
+                <ExternalLink className="size-4 shrink-0" />
+                <div className="min-w-0 flex-1"><p className="truncate font-semibold group-hover:underline">{resource.title}</p><p className="text-[13px] text-muted-foreground">{resource.tag}</p></div>
                 <ArrowUpRight className="size-4 text-muted-foreground" />
               </a>
             ))}
@@ -1113,24 +1060,24 @@ function SettingsView({
 
   return (
     <div className="space-y-5">
-      <SectionHeading eyebrow="Your system" title="Make the dashboard feel like yours." copy="Appearance, music, storage, and the numbers you track can all be changed here." />
+      <SectionHeading title="Customize" copy="Appearance, music, storage, and the numbers you track can all be changed here." />
       <div className="grid gap-5 xl:grid-cols-12">
         <Panel className="xl:col-span-7" title="Workspace" icon={Settings2}>
           <form onSubmit={save} className="space-y-6">
             <Field label="App name" hint="Shown in the sidebar and header.">
               <Input value={draft.appName} onChange={(event) => setDraft({ ...draft, appName: event.target.value })} maxLength={32} />
             </Field>
-            <Field label="Accent color" hint="The dashboard stays dark; this changes its energy.">
+            <Field label="Signal color" hint="Colors today's column, the main buttons and overdue marks.">
               <div className="flex flex-wrap gap-3">
                 {(Object.keys(accentHex) as Accent[]).map((accent) => (
-                  <button key={accent} type="button" aria-label={`Use ${accent}`} aria-pressed={draft.accent === accent} onClick={() => setDraft({ ...draft, accent })} className={cn("accent-choice", draft.accent === accent && "is-selected")}>
+                  <button key={accent} type="button" aria-label={`Use ${accentLabel[accent]}`} aria-pressed={draft.accent === accent} onClick={() => setDraft({ ...draft, accent })} className={cn("accent-choice", draft.accent === accent && "is-selected")}>
                     <span style={{ backgroundColor: accentHex[accent] }} />
-                    <span className="capitalize">{accent}</span>
+                    <span>{accentLabel[accent]}</span>
                   </button>
                 ))}
               </div>
             </Field>
-            <p className="rounded-xl border border-white/10 p-4 text-sm text-muted-foreground">Live Spotify, GitHub, Canvas, and bank connections are disabled. Customize the sample workspace without entering account credentials.</p>
+            <p className="notice text-muted-foreground">Live Spotify, GitHub, Canvas, and bank connections are disabled. Customize the sample workspace without entering account credentials.</p>
             <Field label="Focus times" hint="Comma-separated minutes shown in the focus widget.">
               <Input value={(draft.focusPresets || [15,25,45,60,90]).join(", ")} onChange={(event) => setDraft({ ...draft, focusPresets: event.target.value.split(",").map(Number).filter((value) => value >= 1 && value <= 240).slice(0, 8) })} placeholder="15, 25, 45, 60, 90" />
             </Field>
@@ -1141,12 +1088,12 @@ function SettingsView({
               <Field label="Current savings"><Input type="number" min="0" step="1" value={draft.currentSavings || ""} onChange={(event) => setDraft({ ...draft, currentSavings: Number(event.target.value) })} placeholder="0" /></Field>
             </div>
             <Field label="Graduation date"><Input type="date" value={draft.graduationDate} onChange={(event) => setDraft({ ...draft, graduationDate: event.target.value })} /></Field>
-            <div className="flex items-center justify-between gap-4 rounded-xl border border-white/8 bg-white/[0.025] p-4">
-              <div><p className="text-sm font-medium">Compact layout</p><p className="mt-1 text-xs text-muted-foreground">Fit more on the desktop monitor.</p></div>
+            <div className="flex items-center justify-between gap-4 border-t border-rule pt-4">
+              <div><p className="font-semibold">Compact layout</p><p className="mt-1 text-[13px] text-muted-foreground">Fit more on the desktop monitor.</p></div>
               <Switch checked={draft.compactMode} onCheckedChange={(checked) => setDraft({ ...draft, compactMode: checked })} aria-label="Compact layout" />
             </div>
-            <div className="flex items-center justify-between gap-4 rounded-xl border border-white/8 bg-white/[0.025] p-4">
-              <div><p className="text-sm font-medium">Pure black background</p><p className="mt-1 text-xs text-muted-foreground">Use OLED black instead of the softer graphite background.</p></div>
+            <div className="flex items-center justify-between gap-4 border-t border-rule pt-4">
+              <div><p className="font-semibold">Pure black background</p><p className="mt-1 text-[13px] text-muted-foreground">Use OLED black instead of the carbon background.</p></div>
               <Switch checked={draft.pureBlack || false} onCheckedChange={(checked) => setDraft({ ...draft, pureBlack: checked })} aria-label="Pure black background" />
             </div>
             <div className="flex justify-end"><Button type="submit">Save customization</Button></div>
@@ -1154,7 +1101,7 @@ function SettingsView({
         </Panel>
 
         <div className="space-y-5 xl:col-span-5">
-          <Panel title="Install as an app" icon={Sparkles}>
+          <Panel title="Install as an app">
             <p className="text-sm leading-6 text-muted-foreground">Install it from your browser so it gets its own window and icon on Windows and your Galaxy tablet.</p>
             <InstallAppButton />
           </Panel>
@@ -1171,11 +1118,11 @@ function SettingsView({
   );
 }
 
-function Panel({ title, icon: Icon, action, className, children }: { title: string; icon: typeof LayoutDashboard; action?: React.ReactNode; className?: string; children: React.ReactNode }) {
+function Panel({ title, action, className, children }: { title: string; icon?: typeof LayoutDashboard; action?: React.ReactNode; className?: string; children: React.ReactNode }) {
   return (
     <section className={cn("panel", className)}>
       <div className="panel-heading">
-        <div className="flex min-w-0 items-center gap-2.5"><Icon className="size-4 text-primary" /><h2 className="truncate text-base font-semibold">{title}</h2></div>
+        <h2 className="min-w-0 truncate">{title}</h2>
         {action}
       </div>
       <div className="panel-body">{children}</div>
@@ -1183,10 +1130,10 @@ function Panel({ title, icon: Icon, action, className, children }: { title: stri
   );
 }
 
-function SectionHeading({ eyebrow, title, copy, action }: { eyebrow: string; title: string; copy: string; action?: React.ReactNode }) {
+function SectionHeading({ title, copy, action }: { eyebrow?: string; title: string; copy: string; action?: React.ReactNode }) {
   return (
-    <section className="flex flex-col gap-5 border-b border-white/8 pb-6 lg:flex-row lg:items-end lg:justify-between">
-      <div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{eyebrow}</p><h2 className="mt-2 max-w-3xl text-2xl font-semibold tracking-[-0.025em] sm:text-3xl">{title}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">{copy}</p></div>
+    <section className="flex flex-col gap-5 border-b border-rule pb-6 lg:flex-row lg:items-end lg:justify-between">
+      <div><h2 className="view-title">{title}</h2><p className="mt-3 max-w-[65ch] text-muted-foreground">{copy}</p></div>
       {action}
     </section>
   );
@@ -1195,13 +1142,14 @@ function SectionHeading({ eyebrow, title, copy, action }: { eyebrow: string; tit
 function TaskList({ tasks, courses, onToggle, onStatus, emptyText }: { tasks: WorkspaceState["tasks"]; courses: WorkspaceState["courses"]; onToggle: (id: string, checked: boolean) => void; onStatus: (id: string, status: TaskStatus) => void; emptyText: string }) {
   if (!tasks.length) return <EmptyState icon={CheckCircle2} title="Clear runway" copy={emptyText} />;
   return (
-    <div className="space-y-2">
+    <div>
       {tasks.map((task) => {
         const course = courses.find((item) => item.id === task.courseId);
+        const today = addDaysIso(0), late = Boolean(task.due && task.due < today && task.status !== "done"), dueNow = task.due === today;
         return (
-          <div key={task.id} className={cn("task-row", task.status === "done" && "opacity-55")}>
+          <div key={task.id} className={cn("task-row", (late || dueNow) && "is-hot", task.status === "done" && "opacity-55")}>
             <Checkbox checked={task.status === "done"} onCheckedChange={(value) => onToggle(task.id, value === true)} aria-label={`Mark ${task.title} complete`} />
-            <div className="min-w-0 flex-1"><p className={cn("truncate text-sm font-medium", task.status === "done" && "line-through")}>{task.title}</p><div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><span>{course?.code ?? task.area}</span><span>·</span><span>{formatDate(task.due)}</span></div></div>
+            <div className="min-w-0 flex-1"><p className={cn("task-title break-words font-semibold", task.status === "done" && "line-through")}>{task.title}</p><div className="mt-0.5 flex flex-wrap items-center gap-2 text-muted-foreground"><span className="course-swatch" style={{ "--swatch": course?.color } as React.CSSProperties} /><span className="font-semibold capitalize text-foreground/80">{course?.code ?? task.area}</span><span>·</span>{late && <span className="overdue-tag">Overdue</span>}<span className={late || dueNow ? "text-foreground" : ""}>{formatDate(task.due)}</span></div></div>
             <PriorityBadge priority={task.priority} />
             <TaskStatusSelect value={task.status} onChange={(status) => onStatus(task.id, status)} />
           </div>
@@ -1212,7 +1160,7 @@ function TaskList({ tasks, courses, onToggle, onStatus, emptyText }: { tasks: Wo
 }
 
 function PriorityBadge({ priority }: { priority: Priority }) {
-  return <Badge variant="outline" className={cn("priority-badge", `priority-${priority}`)}><span className="size-1.5 rounded-full bg-current" />{priority}</Badge>;
+  return <Badge variant="outline" className={cn("priority-badge", `priority-${priority}`)}>{priority}</Badge>;
 }
 
 function TaskStatusSelect({ value, onChange }: { value: TaskStatus; onChange: (value: TaskStatus) => void }) {
@@ -1232,13 +1180,13 @@ function WeekStrip({ tasks }: { tasks: WorkspaceState["tasks"] }) {
     return { date, iso, tasks: tasks.filter((task) => task.due === iso && task.status !== "done") };
   });
   return (
-    <div className="grid grid-cols-7 gap-2">
+    <div className="grid grid-cols-7 border-t border-rule">
       {days.map((day, index) => (
-        <div key={day.iso} className={cn("day-cell", index === 0 && "is-today")}>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">{new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(day.date)}</p>
-          <p className="mt-1 text-lg font-semibold">{day.date.getDate()}</p>
-          <div className="mt-4 space-y-1.5">{day.tasks.slice(0, 3).map((task) => <div key={task.id} className={cn("h-1.5 rounded-full", task.priority === "high" ? "bg-rose-400" : task.priority === "medium" ? "bg-amber-400" : "bg-cyan-400")} title={task.title} />)}</div>
-          <p className="mt-3 text-xs text-muted-foreground">{day.tasks.length || "—"}</p>
+        <div key={day.iso} className={cn("day-cell", index === 0 && "is-today", index === 6 && "border-r-0")}>
+          <p className="label !text-current opacity-80">{new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(day.date)}</p>
+          <p className="display mt-1 text-4xl">{day.date.getDate()}</p>
+          <p className="mt-3 font-semibold">{day.tasks.length ? `${day.tasks.length} due` : "—"}</p>
+          <ul className="mt-1 space-y-1">{day.tasks.slice(0, 2).map((task) => <li key={task.id} className="truncate text-[13px] opacity-80" title={task.title}>{task.title}</li>)}</ul>
         </div>
       ))}
     </div>
@@ -1295,87 +1243,118 @@ function FocusWidget({ presets, launch }: { presets?: number[]; launch?: FocusLa
     toast.success("Focus block started", { description: launch.title });
   }, [launch]);
 
-  const elapsed = 1 - seconds / (mode * 60);
+  const total = mode * 60;
+  const elapsed = total ? 1 - seconds / total : 0;
   const display = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+  const state = running ? "running" : seconds === 0 ? "finished" : seconds < total ? "paused" : "ready";
 
   return (
-    <section className="focus-card">
-      <div className="flex items-center justify-between"><div className="flex items-center gap-2"><Clock3 className="size-4 text-primary" /><h2 className="text-base font-semibold">Focus room</h2></div><Badge variant="outline">Pomodoro</Badge></div>
-      {launch && <p className="mt-2 truncate text-sm text-muted-foreground">Working on: <span className="text-foreground">{launch.title}</span></p>}
-      <div className="mt-5 flex items-center gap-5">
-        <div className="timer-ring" style={{ "--timer-progress": `${elapsed * 360}deg` } as React.CSSProperties}><div><span>{display}</span><small>focus</small></div></div>
-        <div className="min-w-0 flex-1">
-          <div className="mb-4 flex flex-wrap gap-2">{choices.map((minutes) => <Button key={minutes} size="xs" variant={mode === minutes ? "default" : "outline"} onClick={() => changeMode(minutes)}>{minutes}m</Button>)}</div>
-          <form className="mb-4 flex items-end gap-2" onSubmit={setManualTime}><label className="min-w-0 flex-1 text-xs text-muted-foreground">Minutes<Input type="number" inputMode="numeric" min={1} max={240} step={1} value={customMinutes} onChange={(event) => setCustomMinutes(event.target.value)} aria-label="Custom timer minutes" className="mt-1" /></label><Button type="submit" size="sm" variant="outline">Set</Button></form>
-          <div className="flex gap-2"><Button size="sm" onClick={() => { if (!running && seconds <= 0) setSeconds(mode * 60); setRunning((value) => !value); }}>{running ? <Pause /> : <Play />}{running ? "Pause" : "Start"}</Button><Button size="icon-sm" variant="outline" aria-label="Reset timer" onClick={() => { setSeconds(mode * 60); setRunning(false); }}><RotateCcw /></Button></div>
+    <section className="focus-card" aria-label="Focus timer">
+      <h2 className="sr-only">Focus timer</h2>
+      <div role="timer" aria-label="Time remaining" className={cn("timer-readout", running && "is-running")}>{display}</div>
+      <div className="timer-bar mt-3" aria-hidden><span style={{ width: `${Math.min(100, elapsed * 100)}%` }} /></div>
+      <p className="mt-2 text-muted-foreground"><b className="text-foreground">Focus timer</b> · {state}{launch ? <> · <span className="break-words text-foreground">{launch.title}</span></> : null}</p>
+      <div className="mt-4 flex flex-wrap items-end gap-3">
+        <div className="preset-row" role="group" aria-label="Focus length">{choices.map((minutes) => <button type="button" key={minutes} aria-pressed={mode === minutes} onClick={() => changeMode(minutes)}>{minutes}</button>)}</div>
+        <form className="flex items-center gap-1" onSubmit={setManualTime}><Input type="number" inputMode="numeric" min={1} max={240} step={1} value={customMinutes} onChange={(event) => setCustomMinutes(event.target.value)} aria-label="Custom timer minutes" className="h-8 w-16" /><Button type="submit" size="sm" variant="ghost">Set</Button></form>
+      </div>
+      <div className="mt-4 flex gap-2"><Button variant={running ? "default" : "outline"} onClick={() => { if (!running && seconds <= 0) setSeconds(mode * 60); setRunning((value) => !value); }}>{running ? <Pause /> : <Play />}{running ? "Pause" : state === "paused" ? "Resume" : `Start ${mode} min`}</Button><Button size="icon" variant="outline" aria-label="Reset timer" onClick={() => { setSeconds(mode * 60); setRunning(false); }}><RotateCcw /></Button></div>
+    </section>
+  );
+}
+
+function TodayNextMove({ workspace, onStartFocus, onOpenPlanner }: { workspace: WorkspaceState; onStartFocus: (task: Task, minutes: number) => void; onOpenPlanner: () => void }) {
+  const block = 50;
+  const top = rankTasks(workspace.tasks, { availableMinutes: block, energy: "medium" })[0];
+  const minutes = top ? Math.min(top.estimatedMinutes, block) : block;
+  return (
+    <section className="next-block" aria-label="Next move">
+      {top ? <>
+        <h2 className="next-title !mt-0">{top.task.title}</h2>
+        <p className="text-muted-foreground"><b className="text-foreground">Next move</b> · {top.reasons.length ? top.reasons.slice(0, 3).join(" · ") : `ranked for a ${block}-minute block at medium energy`}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button onClick={() => onStartFocus(top.task, minutes)}><Play /> Start {minutes} min focus</Button>
+          <Button variant="outline" onClick={onOpenPlanner}>Other options</Button>
         </div>
+      </> : <>
+        <h2 className="next-title !mt-0 text-muted-foreground">Nothing to recommend</h2>
+        <p className="text-muted-foreground">Add a sample task with a date and Next Move will rank it.</p>
+      </>}
+    </section>
+  );
+}
+
+function WeekCalendar({ tasks, courses, onMove }: { tasks: WorkspaceState["tasks"]; courses: WorkspaceState["courses"]; onMove: (id: string, due: string) => void }) {
+  const [selectedTask, setSelectedTask] = useState<string | null>(null);
+  const [offset, setOffset] = useState(0);
+  const today = addDaysIso(0);
+  const days = Array.from({ length: 7 }, (_, index) => {
+    const iso = addDaysIso(offset + index);
+    return { date: new Date(`${iso}T12:00:00`), iso };
+  });
+  const moving = tasks.find((task) => task.id === selectedTask);
+  const range = `${days[0].date.toLocaleDateString(undefined, { month: "long", day: "numeric" })} – ${days[6].date.toLocaleDateString(undefined, days[0].date.getMonth() === days[6].date.getMonth() ? { day: "numeric" } : { month: "long", day: "numeric" })}`;
+  const move = (id: string, iso: string) => { onMove(id, iso); setSelectedTask(null); toast.success(`Moved to ${formatDate(iso)}`); };
+  return (
+    <section aria-label="Week calendar">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-3 max-md:px-4">
+        <h2 className="text-[15px] font-extrabold">{range}</h2>
+        <div className="flex items-center gap-2">
+          <Button size="icon-sm" variant="outline" aria-label="Previous week" onClick={() => setOffset(offset - 7)}><ChevronLeft /></Button>
+          <Button size="sm" variant="outline" disabled={offset === 0} onClick={() => setOffset(0)}>Today</Button>
+          <Button size="icon-sm" variant="outline" aria-label="Next week" onClick={() => setOffset(offset + 7)}><ChevronRight /></Button>
+        </div>
+      </div>
+      {moving && <div className="flex flex-wrap items-center gap-3 border-t border-rule px-6 py-2 text-[13px] max-md:px-4"><span>Choose a new date for <b>{moving.title}</b>.</span><Button size="xs" variant="ghost" onClick={() => setSelectedTask(null)}>Cancel</Button></div>}
+      <div className="planning-week">
+        {days.map((day) => {
+          const list = tasks.filter((task) => task.due === day.iso && task.status !== "done");
+          return (
+            <div key={day.iso} className={cn("calendar-day", day.iso === today && "is-today", day.iso < today && "is-past")} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { const id = event.dataTransfer.getData("text/task-id"); if (id) move(id, day.iso); }}>
+              <div className="day-head">
+                <span className="label">{day.date.toLocaleDateString(undefined, { weekday: "short" })}{day.iso === days[0].iso || day.date.getDate() === 1 ? ` · ${day.date.toLocaleDateString(undefined, { month: "short" })}` : ""}</span>
+                <span className="day-numeral" aria-label={day.date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}>{day.date.getDate()}</span>
+              </div>
+              {selectedTask && <Button size="xs" variant={day.iso === today ? "secondary" : "outline"} className="mb-2 w-full" onClick={() => move(selectedTask, day.iso)}>Move to {day.date.toLocaleDateString(undefined, { month: "short", day: "numeric" })}</Button>}
+              {list.map((task) => {
+                const course = courses.find((item) => item.id === task.courseId);
+                return (
+                  <article key={task.id} className={cn("calendar-task", selectedTask === task.id && "is-selected")}>
+                    <div className="task-line"><span className="course-swatch translate-y-[1px]" style={{ "--swatch": course?.color } as React.CSSProperties} /><span className="min-w-0"><span className="block break-words font-semibold">{task.title}</span><span className="muted block capitalize text-muted-foreground">{course?.code || task.area}</span></span></div>
+                    <div className="task-actions pl-[17px]"><button type="button" draggable onClick={() => setSelectedTask((current) => current === task.id ? null : task.id)} onDragStart={(event) => { event.dataTransfer.setData("text/task-id", task.id); event.dataTransfer.effectAllowed = "move"; }} aria-label={`Move ${task.title}`}>Move</button></div>
+                  </article>
+                );
+              })}
+              {!list.length && <p className="muted border-t border-rule pt-2 text-muted-foreground">Nothing scheduled</p>}
+            </div>
+          );
+        })}
       </div>
     </section>
   );
 }
 
-function ElegantClock() {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-  return (
-    <section className="clock-card" aria-label="Current date and time">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Local time</p>
-      <p className="mt-2 text-4xl font-semibold tracking-[-0.055em] tabular-nums sm:text-5xl">{new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(now)}</p>
-      <p className="mt-2 text-sm text-muted-foreground">{new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(now)}</p>
-      <div className="clock-scan" />
-    </section>
-  );
-}
-
-function InteractiveCalendar({ tasks, courses, onMove }: { tasks: WorkspaceState["tasks"]; courses: WorkspaceState["courses"]; onMove: (id: string, due: string) => void }) {
-  const [selectedTask, setSelectedTask] = useState<string | null>(null);
-  const days = Array.from({ length: 14 }, (_, index) => {
-    const date = new Date();
-    date.setDate(date.getDate() + index);
-    const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    return { date, iso };
-  });
-  return (
-    <div className="calendar-grid">
-      {days.map((day, index) => (
-        <div key={day.iso} className={cn("calendar-day", index === 0 && "is-today", selectedTask && "is-move-target")} onClick={() => { if (selectedTask) { onMove(selectedTask, day.iso); setSelectedTask(null); toast.success(`Moved to ${formatDate(day.iso)}`); } }} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { const id = event.dataTransfer.getData("text/task-id"); if (id) { onMove(id, day.iso); toast.success(`Moved to ${formatDate(day.iso)}`); } }}>
-          <div className="mb-3 flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{new Intl.DateTimeFormat("en-US", { weekday: "short" }).format(day.date)}</p><span className="text-sm font-semibold">{day.date.getDate()}</span></div>
-          <div className="space-y-2">
-            {tasks.filter((task) => task.due === day.iso && task.status !== "done").map((task) => {
-              const course = courses.find((item) => item.id === task.courseId);
-              return <button type="button" key={task.id} draggable onClick={(event) => { event.stopPropagation(); setSelectedTask((current) => current === task.id ? null : task.id); }} onDragStart={(event) => { event.dataTransfer.setData("text/task-id", task.id); event.dataTransfer.effectAllowed = "move"; }} className={cn("calendar-task w-full text-left", selectedTask === task.id && "is-selected")} title="Drag, or tap then choose another date"><GripVertical className="size-3.5 shrink-0 text-muted-foreground" /><div className="min-w-0"><p className="truncate text-xs font-medium">{task.title}</p><p className="truncate text-[11px] text-muted-foreground">{course?.code || task.area}</p></div></button>;
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function GithubProjects() {
-  return <div className="space-y-3"><p className="text-sm text-muted-foreground">Sample workspace projects, not live GitHub activity.</p>{["Cloud architecture exercise", "Network troubleshooting lab"].map(title => <div className="subtle-row" key={title}><FolderGit2 className="size-4 text-primary" /><div><p className="text-sm font-medium">{title}</p><p className="text-xs text-muted-foreground">Fictional demo project</p></div></div>)}</div>;
+  return <div><p className="mb-2 text-muted-foreground">Sample workspace projects, not live GitHub activity.</p>{["Cloud architecture exercise", "Network troubleshooting lab"].map(title => <div className="subtle-row" key={title}><FolderGit2 className="size-4 shrink-0" /><div><p className="font-semibold">{title}</p><p className="text-[13px] text-muted-foreground">Fictional demo project</p></div></div>)}</div>;
 }
 
 function EditableHabits({ workspace, onToggle, onUpdate }: { workspace: WorkspaceState; onToggle: (id: string, checked: boolean) => void; onUpdate: (change: (current: WorkspaceState) => WorkspaceState) => void }) {
   const add = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const form = event.currentTarget; const title = String(new FormData(form).get("habit") || "").trim(); if (!title) return; onUpdate((current) => ({ ...current, habits: [...current.habits, { id: makeId("habit"), title, done: false }] })); form.reset(); };
-  return <div className="space-y-3"><form onSubmit={add} className="flex gap-2"><Input name="habit" placeholder="Add your own habit" aria-label="New habit" /><Button type="submit" size="icon" aria-label="Add habit"><Plus /></Button></form><div className="grid gap-2 sm:grid-cols-2">{workspace.habits.map((habit) => <div key={habit.id} className="subtle-row"><Checkbox checked={habit.done} onCheckedChange={(value) => onToggle(habit.id, value === true)} /><span className={cn("min-w-0 flex-1 truncate text-sm", habit.done && "text-muted-foreground line-through")}>{habit.title}</span><Button size="icon-xs" variant="ghost" aria-label={`Remove ${habit.title}`} onClick={() => onUpdate((current) => ({ ...current, habits: current.habits.filter((item) => item.id !== habit.id) }))}><Trash2 /></Button></div>)}</div></div>;
+  return <div className="space-y-3"><form onSubmit={add} className="flex gap-2"><Input name="habit" placeholder="Add your own habit" aria-label="New habit" /><Button type="submit" size="icon" aria-label="Add habit"><Plus /></Button></form><div className="grid gap-x-6 sm:grid-cols-2">{workspace.habits.map((habit) => <div key={habit.id} className="subtle-row"><Checkbox checked={habit.done} onCheckedChange={(value) => onToggle(habit.id, value === true)} /><span className={cn("min-w-0 flex-1 truncate text-sm", habit.done && "text-muted-foreground line-through")}>{habit.title}</span><Button size="icon-xs" variant="ghost" aria-label={`Remove ${habit.title}`} onClick={() => onUpdate((current) => ({ ...current, habits: current.habits.filter((item) => item.id !== habit.id) }))}><Trash2 /></Button></div>)}</div></div>;
 }
 
 function SubscriptionTracker({ workspace, onUpdate }: { workspace: WorkspaceState; onUpdate: (change: (current: WorkspaceState) => WorkspaceState) => void }) {
   const subscriptions = workspace.subscriptions || [];
   const monthly = subscriptions.reduce((sum, item) => sum + item.amount, 0);
   const add = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const form = event.currentTarget; const data = new FormData(form); const name = String(data.get("name") || "").trim(); const amount = Math.abs(Number(data.get("amount"))); if (!name || !amount) return; onUpdate((current) => ({ ...current, subscriptions: [...(current.subscriptions || []), { id: makeId("subscription"), name, amount, billingDay: Math.max(1, Math.min(31, Number(data.get("day")) || 1)), category: "Subscription" }] })); form.reset(); };
-  return <div className="space-y-4"><div><div className="flex items-end justify-between"><div><p className="text-sm text-muted-foreground">Recurring monthly</p><p className="mt-1 text-2xl font-semibold">{formatMoney(monthly)}</p></div><span className="text-xs text-muted-foreground">{subscriptions.length} active</span></div><Progress value={Math.min(100, workspace.settings.monthlyBudget ? monthly / workspace.settings.monthlyBudget * 100 : 0)} className="mt-3" /></div><form onSubmit={add} className="grid gap-2 sm:grid-cols-[1fr_8rem_6rem_auto]"><Input name="name" placeholder="Spotify" aria-label="Subscription name" /><Input name="amount" type="number" min="0.01" step="0.01" placeholder="$" aria-label="Monthly amount" /><Input name="day" type="number" min="1" max="31" placeholder="Day" aria-label="Billing day" /><Button type="submit"><Plus /> Add</Button></form><div className="space-y-2">{subscriptions.map((item) => <div key={item.id} className="subtle-row"><RefreshCw className="size-4 text-primary" /><div className="min-w-0 flex-1"><p className="text-sm font-medium">{item.name}</p><p className="text-xs text-muted-foreground">Bills on day {item.billingDay}</p></div><span className="text-sm font-medium">{formatMoney(item.amount)}</span><Button size="icon-xs" variant="ghost" aria-label={`Remove ${item.name}`} onClick={() => onUpdate((current) => ({ ...current, subscriptions: (current.subscriptions || []).filter((entry) => entry.id !== item.id) }))}><Trash2 /></Button></div>)}</div></div>;
+  return <div className="space-y-4"><div><div className="flex items-end justify-between"><div><p className="text-muted-foreground">Recurring monthly</p><p className="mt-1 text-[1.6rem] font-extrabold">{formatMoney(monthly)}</p></div><span className="text-xs text-muted-foreground">{subscriptions.length} active</span></div><Progress value={Math.min(100, workspace.settings.monthlyBudget ? monthly / workspace.settings.monthlyBudget * 100 : 0)} className="mt-3" /></div><form onSubmit={add} className="grid gap-2 sm:grid-cols-[1fr_8rem_6rem_auto]"><Input name="name" placeholder="Spotify" aria-label="Subscription name" /><Input name="amount" type="number" min="0.01" step="0.01" placeholder="$" aria-label="Monthly amount" /><Input name="day" type="number" min="1" max="31" placeholder="Day" aria-label="Billing day" /><Button type="submit"><Plus /> Add</Button></form><div className="space-y-2">{subscriptions.map((item) => <div key={item.id} className="subtle-row"><RefreshCw className="size-4 shrink-0" /><div className="min-w-0 flex-1"><p className="font-semibold">{item.name}</p><p className="text-xs text-muted-foreground">Bills on day {item.billingDay}</p></div><span className="text-sm font-medium">{formatMoney(item.amount)}</span><Button size="icon-xs" variant="ghost" aria-label={`Remove ${item.name}`} onClick={() => onUpdate((current) => ({ ...current, subscriptions: (current.subscriptions || []).filter((entry) => entry.id !== item.id) }))}><Trash2 /></Button></div>)}</div></div>;
 }
 
 function NotesMiniCard({ onOpenNotes }: { onOpenNotes: () => void }) {
   return (
     <section className="notes-mini-card">
-      <div className="grid size-10 place-items-center rounded-xl bg-primary/12 text-primary"><NotebookPen className="size-5" /></div>
-      <div className="min-w-0 flex-1"><h2 className="text-sm font-semibold">Samsung Notes</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">Desktop launcher disabled in this public demo.</p></div>
+      <NotebookPen className="size-5 shrink-0" />
+      <div className="min-w-0 flex-1"><h2 className="font-extrabold">Samsung Notes</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">Desktop launcher disabled in this public demo.</p></div>
       <Button size="sm" variant="outline" onClick={onOpenNotes}>Open <ArrowUpRight /></Button>
     </section>
   );
@@ -1384,30 +1363,30 @@ function NotesMiniCard({ onOpenNotes }: { onOpenNotes: () => void }) {
 function NotesDock({ onOpenNotes, className }: { onOpenNotes: () => void; className?: string }) {
   return (
     <section className={cn("notes-dock", className)}>
-      <div><div className="mb-4 grid size-11 place-items-center rounded-xl border border-primary/25 bg-primary/10"><NotebookPen className="size-5 text-primary" /></div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Notes dock</p><h2 className="mt-2 text-xl font-semibold">Write where the S Pen feels right.</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">The private app can launch Samsung Notes. This demo shows the design without launching applications.</p></div>
-      <div className="mt-6 flex flex-wrap gap-2"><Button onClick={onOpenNotes}><NotebookPen /> Open Samsung Notes</Button><Button variant="outline" asChild><a href="https://www.samsung.com/us/support/owners/app/samsung-notes/" target="_blank" rel="noreferrer">Notes help <ExternalLink /></a></Button></div>
+      <div><h2 className="label !text-foreground">Samsung Notes</h2><p className="mt-3 max-w-[48ch] text-muted-foreground">The private app can launch Samsung Notes. This demo shows the design without launching applications.</p></div>
+      <div className="mt-6 flex flex-wrap gap-2"><Button variant="outline" onClick={onOpenNotes}><NotebookPen /> Open Samsung Notes</Button><Button variant="outline" asChild><a href="https://www.samsung.com/us/support/owners/app/samsung-notes/" target="_blank" rel="noreferrer">Notes help <ExternalLink /></a></Button></div>
     </section>
   );
 }
 
-function MetricCard({ label, value, note, icon: Icon, tone = "default" }: { label: string; value: string; note: string; icon: typeof WalletCards; tone?: "default" | "good" | "warn" }) {
+function MetricCard({ label, value, note, tone = "default" }: { label: string; value: string; note: string; icon?: typeof WalletCards; tone?: "default" | "good" | "warn" }) {
   return (
-    <article className="metric-card"><div className={cn("metric-icon", tone === "good" && "text-emerald-300", tone === "warn" && "text-amber-300")}><Icon className="size-4" /></div><p className="mt-5 text-sm text-muted-foreground">{label}</p><p className="mt-1 text-2xl font-semibold tracking-tight">{value}</p><p className="mt-2 text-xs text-muted-foreground">{note}</p></article>
+    <article className={cn("metric-card", tone === "warn" && "is-warn")}><p className="label">{label}</p><p className="metric-value">{value}</p><p className="mt-2 text-[13px] text-muted-foreground">{note}</p></article>
   );
 }
 
-function EmptyState({ icon: Icon, title, copy, action, onClick }: { icon: typeof LayoutDashboard; title: string; copy: string; action?: string; onClick?: () => void }) {
+function EmptyState({ title, copy, action, onClick }: { icon?: typeof LayoutDashboard; title: string; copy: string; action?: string; onClick?: () => void }) {
   return (
-    <div className="grid min-h-36 place-items-center rounded-xl border border-dashed border-white/10 px-5 py-8 text-center"><div><Icon className="mx-auto size-5 text-muted-foreground" /><p className="mt-3 text-sm font-medium">{title}</p><p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-muted-foreground">{copy}</p>{action && onClick && <Button variant="outline" size="sm" className="mt-4" onClick={onClick}>{action}</Button>}</div></div>
+    <div className="border-t border-rule py-6"><p className="font-extrabold">{title}</p><p className="mt-1 max-w-[60ch] text-muted-foreground">{copy}</p>{action && onClick && <Button variant="outline" size="sm" className="mt-4" onClick={onClick}>{action}</Button>}</div>
   );
 }
 
 function EmptyCard({ title, copy, onClick }: { title: string; copy: string; onClick: () => void }) {
-  return <button type="button" onClick={onClick} className="course-card grid min-h-52 place-items-center border-dashed text-center"><div><Plus className="mx-auto size-5 text-primary" /><p className="mt-3 text-sm font-medium">{title}</p><p className="mx-auto mt-1 max-w-xs text-xs leading-5 text-muted-foreground">{copy}</p></div></button>;
+  return <button type="button" onClick={onClick} className="w-full border-t border-rule py-5 text-left hover:bg-secondary"><span className="flex items-center gap-2 font-extrabold"><Plus className="size-4" />{title}</span><span className="mt-1 block max-w-[60ch] text-muted-foreground">{copy}</span></button>;
 }
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return <label className="block"><span className="text-sm font-medium">{label}</span>{hint && <span className="ml-2 text-xs text-muted-foreground">{hint}</span>}<div className="mt-2">{children}</div></label>;
+  return <label className="block"><span className="font-semibold">{label}</span>{hint && <span className="mt-1 block max-w-[65ch] text-[13px] text-muted-foreground">{hint}</span>}<div className="mt-2">{children}</div></label>;
 }
 
 function InstallAppButton() {
@@ -1424,10 +1403,10 @@ function InstallAppButton() {
     return () => { window.removeEventListener("beforeinstallprompt", capture); window.removeEventListener("appinstalled", complete); };
   }, []);
 
-  if (installed) return <div className="mt-5 flex items-center gap-2 text-sm text-emerald-300"><CheckCircle2 className="size-4" />Installed on this device</div>;
-  if (!prompt) return <p className="mt-4 rounded-xl border border-white/8 bg-white/[0.025] p-4 text-sm leading-6 text-muted-foreground">In Edge or Chrome, open the browser menu and choose <strong className="text-foreground">Install app</strong> or <strong className="text-foreground">Add to Home screen</strong>.</p>;
+  if (installed) return <div className="mt-5 flex items-center gap-2 text-sm text-[color:var(--ok)]"><CheckCircle2 className="size-4" />Installed on this device</div>;
+  if (!prompt) return <p className="mt-4 text-muted-foreground">In Edge or Chrome, open the browser menu and choose <strong className="text-foreground">Install app</strong> or <strong className="text-foreground">Add to Home screen</strong>.</p>;
 
-  return <Button className="mt-5" onClick={async () => { await prompt.prompt(); const result = await prompt.userChoice; if (result.outcome === "accepted") setInstalled(true); setPrompt(null); }}><Sparkles /> Install Gerardo OS</Button>;
+  return <Button className="mt-5" onClick={async () => { await prompt.prompt(); const result = await prompt.userChoice; if (result.outcome === "accepted") setInstalled(true); setPrompt(null); }}><Download /> Install Gerardo OS</Button>;
 }
 
 function QuickAddDialog({ open, onOpenChange, initialTab, workspace, onUpdate }: { open: boolean; onOpenChange: (open: boolean) => void; initialTab: AddTab; workspace: WorkspaceState; onUpdate: (change: (current: WorkspaceState) => WorkspaceState) => void }) {
@@ -1466,7 +1445,7 @@ function QuickAddDialog({ open, onOpenChange, initialTab, workspace, onUpdate }:
   };
   const addCourse = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); const data = new FormData(event.currentTarget); const title = String(data.get("title") ?? "").trim(); if (!title) return;
-    onUpdate((current) => ({ ...current, courses: [...current.courses, { id: makeId("course"), code: String(data.get("code") || "COURSE").trim().toUpperCase(), title, instructor: String(data.get("instructor") || "Add instructor").trim(), color: String(data.get("color") || "#7c8cff"), progress: 0 }] }));
+    onUpdate((current) => ({ ...current, courses: [...current.courses, { id: makeId("course"), code: String(data.get("code") || "COURSE").trim().toUpperCase(), title, instructor: String(data.get("instructor") || "Add instructor").trim(), color: String(data.get("color") || "#2f6bd8"), progress: 0 }] }));
     finish("Course added");
   };
   const addMoney = (event: FormEvent<HTMLFormElement>) => {
@@ -1487,10 +1466,10 @@ function QuickAddDialog({ open, onOpenChange, initialTab, workspace, onUpdate }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto border-white/10 bg-[#10131c] sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto border-rule bg-[#10131c] sm:max-w-2xl">
         <DialogHeader><DialogTitle>Quick add</DialogTitle><DialogDescription>Put the item where it belongs without leaving your flow.</DialogDescription></DialogHeader>
         <Tabs value={tab} onValueChange={(value) => setTab(value as AddTab)}>
-          <TabsList className="grid h-auto w-full grid-cols-5 bg-white/[0.045]">
+          <TabsList className="grid h-auto w-full grid-cols-5 bg-card">
             <TabsTrigger value="task">Task</TabsTrigger><TabsTrigger value="course">Course</TabsTrigger><TabsTrigger value="money">Money</TabsTrigger><TabsTrigger value="project">Project</TabsTrigger><TabsTrigger value="capture">Capture</TabsTrigger>
           </TabsList>
           <TabsContent value="task">

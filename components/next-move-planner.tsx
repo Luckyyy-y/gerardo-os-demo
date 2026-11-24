@@ -11,7 +11,6 @@ import {
   Play,
   Plus,
   Repeat2,
-  Sparkles,
   Zap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -113,21 +112,20 @@ export function NextMovePlanner({ workspace, onUpdate, onComplete, onStartFocus,
 
   return (
     <div className="space-y-5">
-      <section className="rounded-[1.4rem] border border-white/10 bg-white/[0.025] p-5 sm:p-6">
+      <section className="border-b border-rule pb-6">
         <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
           <div>
-            <p className="text-sm font-medium text-primary">Next Move</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] sm:text-3xl">Choose the right task for the time and energy you have.</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">Your deadlines, difficulty, priority, recurring responsibilities, and current capacity decide the order. No paid AI is involved.</p>
+            <h2 className="view-title">Next Move</h2>
+            <p className="mt-3 max-w-[65ch] text-muted-foreground">Your deadlines, difficulty, priority, recurring responsibilities, and current capacity decide the order. No paid AI is involved.</p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:w-[25rem]">
-            <label className="text-sm font-medium">Time available
+            <label className="font-semibold">Time available
               <Select value={String(availableMinutes)} onValueChange={(value) => setAvailableMinutes(Number(value))}>
                 <SelectTrigger className="mt-2 w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>{minuteChoices.map((minutes) => <SelectItem key={minutes} value={String(minutes)}>{minutes} minutes</SelectItem>)}</SelectContent>
               </Select>
             </label>
-            <label className="text-sm font-medium">Energy right now
+            <label className="font-semibold">Energy right now
               <Select value={energy} onValueChange={(value) => setEnergy(value as TaskEnergy)}>
                 <SelectTrigger className="mt-2 w-full"><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem></SelectContent>
@@ -138,35 +136,27 @@ export function NextMovePlanner({ workspace, onUpdate, onComplete, onStartFocus,
       </section>
 
       {!selected ? (
-        <section className="grid min-h-72 place-items-center rounded-[1.4rem] border border-dashed border-white/10 p-8 text-center">
+        <section className="border-b border-rule py-10">
           <div>
-            <CheckCircle2 className="mx-auto size-7 text-emerald-300" />
-            <h2 className="mt-4 text-lg font-semibold">Your queue is clear</h2>
-            <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">Add an assignment, study session, or recurring responsibility and Next Move will rank it.</p>
+            <h2 className="display text-5xl text-muted-foreground">Your queue is clear</h2>
+            <p className="mt-3 max-w-[60ch] text-muted-foreground">Add an assignment, study session, or recurring responsibility and Next Move will rank it.</p>
             <Button className="mt-5" onClick={onOpenQuickAdd}><Plus /> Add a task</Button>
           </div>
         </section>
       ) : (
         <div className="grid gap-5 xl:grid-cols-12">
-          <section className="relative overflow-hidden rounded-[1.4rem] border border-primary/25 bg-[radial-gradient(circle_at_top_right,color-mix(in_srgb,var(--primary)_18%,transparent),transparent_42%),linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.018))] p-5 sm:p-7 xl:col-span-8">
-            <div className="relative z-10">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge className="border-primary/25 bg-primary/10 text-primary"><Sparkles className="size-3.5" /> Best next move</Badge>
-                  <Badge variant="outline">{kindLabel(selected.kind)}</Badge>
-                </div>
-                <span className={cn("text-sm font-medium", selected.task.due < addDaysIso(0) ? "text-rose-300" : "text-muted-foreground")}>{dueLabel(selected.task.due)}</span>
-              </div>
+          <section className="border-y border-rule bg-card p-5 sm:p-7 xl:col-span-8">
+            <div>
+              <h2 className="display max-w-3xl break-words text-[clamp(2.5rem,4.5vw,4.5rem)]">{selected.task.title}</h2>
+              <p className="mt-3 text-muted-foreground"><b className="text-foreground">{selected.task.id === recommendations[0]?.task.id ? "Best fit" : "Selected"}</b> · {kindLabel(selected.kind)} · {selected.reasons[0] ?? "the strongest fit for your current plan"}</p>
 
-              <h2 className="mt-6 max-w-3xl text-2xl font-semibold tracking-[-0.035em] sm:text-4xl">{selected.task.title}</h2>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">{selected.reasons[0] ?? "This is the strongest fit for your current plan."}</p>
-
-              <div className="mt-5 flex flex-wrap gap-2 text-sm">
-                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/15 px-3 py-1.5"><Clock3 className="size-4 text-primary" />{selected.estimatedMinutes} min</span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/15 px-3 py-1.5"><Gauge className="size-4 text-primary" />{difficultyLabel(selected.difficulty)}</span>
-                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/15 px-3 py-1.5"><Zap className="size-4 text-primary" />{titleCase(selected.energy)} energy</span>
-                {selected.task.recurrence && <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/15 px-3 py-1.5"><Repeat2 className="size-4 text-primary" />{titleCase(selected.task.recurrence)}</span>}
-              </div>
+              <dl className="mt-5 grid max-w-xl grid-cols-2 border-t border-rule sm:grid-cols-4">
+                <div className="col-span-2 border-b border-rule py-2 pr-3 sm:col-span-4"><dt className="label">Due</dt><dd className={cn("font-extrabold", selected.task.due && selected.task.due < addDaysIso(0) && "text-signal")}>{dueLabel(selected.task.due)}</dd></div>
+                <div className="border-b border-rule py-2 pr-3"><dt className="label">Time</dt><dd className="font-extrabold">{selected.estimatedMinutes} min</dd></div>
+                <div className="border-b border-rule py-2 pr-3"><dt className="label">Difficulty</dt><dd className="font-extrabold">{difficultyLabel(selected.difficulty)}</dd></div>
+                <div className="border-b border-rule py-2 pr-3"><dt className="label">Energy</dt><dd className="font-extrabold">{titleCase(selected.energy)}</dd></div>
+                {selected.task.recurrence && <div className="border-b border-rule py-2 pr-3"><dt className="label">Repeats</dt><dd className="font-extrabold">{titleCase(selected.task.recurrence)}</dd></div>}
+              </dl>
 
               <div className="mt-7 flex flex-wrap gap-2">
                 <Button onClick={() => onStartFocus(selected.task, Math.min(selected.estimatedMinutes, availableMinutes))}><Play /> Start {Math.min(selected.estimatedMinutes, availableMinutes)}m focus</Button>
@@ -177,16 +167,16 @@ export function NextMovePlanner({ workspace, onUpdate, onComplete, onStartFocus,
               </div>
 
               {showWhy && (
-                <div className="mt-5 rounded-xl border border-white/10 bg-black/15 p-4">
-                  <p className="text-sm font-medium">Why it ranked first</p>
-                  <ul className="mt-2 grid gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-                    {selected.reasons.map((reason) => <li key={reason} className="flex items-start gap-2"><ArrowRight className="mt-0.5 size-4 shrink-0 text-primary" />{reason}</li>)}
+                <div className="mt-5 border-t border-rule pt-4">
+                  <p className="font-extrabold">Why it ranked first</p>
+                  <ul className="mt-2 grid gap-2 text-muted-foreground sm:grid-cols-2">
+                    {selected.reasons.map((reason) => <li key={reason} className="flex items-start gap-2"><ArrowRight className="mt-0.5 size-4 shrink-0 text-foreground" />{reason}</li>)}
                   </ul>
                 </div>
               )}
 
-              <div className="mt-7 border-t border-white/10 pt-5">
-                <p className="text-sm font-medium">Adjust how the planner sees this task</p>
+              <div className="mt-7 border-t border-rule pt-5">
+                <p className="font-semibold">Adjust how the planner sees this task</p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <Select value={selected.kind} onValueChange={(value) => tuneTask(selected.task.id, { kind: value as TaskKind })}>
                     <SelectTrigger className="w-full" aria-label="Task purpose"><SelectValue /></SelectTrigger>
@@ -209,17 +199,17 @@ export function NextMovePlanner({ workspace, onUpdate, onComplete, onStartFocus,
             </div>
           </section>
 
-          <section className="rounded-[1.4rem] border border-white/10 bg-white/[0.025] p-5 xl:col-span-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2"><ListTodo className="size-4 text-primary" /><h2 className="font-semibold">Up next</h2></div>
-              <Badge variant="outline">{recommendations.length} open</Badge>
+          <section className="xl:col-span-4">
+            <div className="flex items-center justify-between gap-3 pb-2">
+              <h2 className="label !text-foreground">Up next</h2>
+              <span className="label">{recommendations.length} open</span>
             </div>
-            <div className="mt-4 space-y-2">
+            <div>
               {recommendations.slice(0, 5).map((item, index) => (
-                <button key={item.task.id} type="button" onClick={() => { setSelectedId(item.task.id); setShowWhy(false); }} className={cn("w-full rounded-xl border p-3 text-left transition-colors", item.task.id === selected.task.id ? "border-primary/30 bg-primary/[0.07]" : "border-white/8 bg-white/[0.02] hover:bg-white/[0.05]") }>
+                <button key={item.task.id} type="button" onClick={() => { setSelectedId(item.task.id); setShowWhy(false); }} className={cn("w-full border-t border-rule px-2 py-3 text-left", item.task.id === selected.task.id ? "bg-foreground text-background" : "hover:bg-secondary") }>
                   <div className="flex items-start gap-3">
-                    <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-white/[0.05] text-xs font-semibold text-muted-foreground">{index + 1}</span>
-                    <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium">{item.task.title}</p><p className="mt-1 text-xs text-muted-foreground">{dueLabel(item.task.due)} · {item.estimatedMinutes}m · {difficultyLabel(item.difficulty)}</p></div>
+                    <span className="display w-7 shrink-0 text-2xl">{index + 1}</span>
+                    <div className="min-w-0 flex-1"><p className="break-words font-semibold">{item.task.title}</p><p className="mt-0.5 text-[13px] opacity-70">{dueLabel(item.task.due)} · {item.estimatedMinutes}m · {difficultyLabel(item.difficulty)}</p></div>
                   </div>
                 </button>
               ))}
@@ -229,20 +219,20 @@ export function NextMovePlanner({ workspace, onUpdate, onComplete, onStartFocus,
         </div>
       )}
 
-      <section className="rounded-[1.4rem] border border-white/10 bg-white/[0.025] p-5 sm:p-6">
+      <section className="border-t border-rule pt-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div><div className="flex items-center gap-2"><Repeat2 className="size-4 text-primary" /><h2 className="font-semibold">Recurring responsibilities</h2></div><p className="mt-1 text-sm text-muted-foreground">Cleaning, laundry, study sessions, reviews, and anything that should return automatically.</p></div>
+          <div><h2 className="label !text-foreground">Recurring responsibilities</h2><p className="mt-1 text-muted-foreground">Cleaning, laundry, study sessions, reviews, and anything that should return automatically.</p></div>
           <Button variant="outline" size="sm" onClick={onOpenQuickAdd}><Plus /> Add recurring</Button>
         </div>
         {recurring.length ? (
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-4 grid gap-x-8 md:grid-cols-2 xl:grid-cols-3">
             {recurring.slice(0, 6).map((task) => {
               const defaults = taskDefaults(task);
               return (
-                <article key={task.id} className="rounded-xl border border-white/8 bg-white/[0.02] p-4">
+                <article key={task.id} className="border-t border-rule py-3">
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0"><p className="truncate text-sm font-medium">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{titleCase(task.recurrence as TaskRecurrence)} · {dueLabel(task.due)} · {defaults.estimatedMinutes}m</p></div>
-                    <AlarmClock className="size-4 shrink-0 text-primary" />
+                    <div className="min-w-0"><p className="truncate font-semibold">{task.title}</p><p className="mt-1 text-[13px] text-muted-foreground">{titleCase(task.recurrence as TaskRecurrence)} · {dueLabel(task.due)} · {defaults.estimatedMinutes}m</p></div>
+                    <AlarmClock className="size-4 shrink-0 text-foreground" />
                   </div>
                   <Button size="xs" variant="ghost" className="mt-3" onClick={() => tuneTask(task.id, { recurrence: undefined })}>Stop repeating</Button>
                 </article>
@@ -250,7 +240,7 @@ export function NextMovePlanner({ workspace, onUpdate, onComplete, onStartFocus,
             })}
           </div>
         ) : (
-          <div className="mt-4 rounded-xl border border-dashed border-white/10 p-6 text-center text-sm text-muted-foreground">No repeating tasks yet. Add “Clean room” and choose Weekly to start.</div>
+          <div className="mt-4 border-t border-rule py-6 text-muted-foreground">No repeating tasks yet. Add “Clean room” and choose Weekly to start.</div>
         )}
       </section>
     </div>

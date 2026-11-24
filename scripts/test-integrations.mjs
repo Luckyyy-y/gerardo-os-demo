@@ -1,9 +1,9 @@
 import { build } from "esbuild";
 import { mkdir, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
-const root = resolve(new URL("..", import.meta.url).pathname);
+const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const work = join(root, ".work");
 const outfile = join(work, "integrations.test.mjs");
 await mkdir(work, { recursive: true });

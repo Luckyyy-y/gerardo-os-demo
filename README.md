@@ -30,7 +30,7 @@ These amounts are sample data. Manual entries work, but live bank connections ar
 - Suggest what to work on next.
 - Start, pause, and reset a focus timer.
 - Keep sample courses, habits, notes, and manual expenses.
-- Change the accent color and layout density.
+- Change the signal color and layout density.
 - Reset the demo to its starting data.
 
 ## Tools used
